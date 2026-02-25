@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Timer, Gift, Play, Settings, User } from 'lucide-react';
+import { Timer, Gift, Play, User } from 'lucide-react';
 import { io } from 'socket.io-client';
 
 export default function App() {
@@ -21,11 +21,17 @@ export default function App() {
     const urlParams = new URLSearchParams(window.location.search);
     const userFromUrl = pathName || urlParams.get('u');
 
-    if (userFromUrl) {
+    // Игнорируем технические пути
+    if (userFromUrl && userFromUrl !== 'index.html') {
       setUsername(userFromUrl);
       setIsWidgetMode(true);
       connectToServer(userFromUrl);
     }
+
+    return () => {
+      if (demoIntervalRef.current) clearInterval(demoIntervalRef.current);
+      if (socketRef.current) socketRef.current.disconnect();
+    };
   }, []);
 
   // Таймер обратного отсчета
@@ -39,9 +45,10 @@ export default function App() {
 
   const connectToServer = (user) => {
     setStatus('Подключение к серверу...');
-    // В реальном проекте здесь будет URL вашего Node.js сервера
-    // Например: const socket = io('http://localhost:3001');
-    const socket = io('http://localhost:3001', {
+    
+    // ВАЖНО: Мы используем '/', чтобы socket.io сам подключился к тому домену, 
+    // на котором сейчас открыт виджет (Railway или localhost)
+    const socket = io('/', {
       transports: ['websocket'],
       reconnection: true
     });
@@ -195,7 +202,7 @@ export default function App() {
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-3 border border-slate-600 rounded-xl leading-5 bg-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 sm:text-sm"
+                  className="block w-full pl-10 pr-3 py-3 border border-slate-600 rounded-xl leading-5 bg-slate-900 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 sm:text-sm"
                   placeholder="Например: oficial_streamer"
                 />
               </div>
@@ -203,6 +210,8 @@ export default function App() {
 
             <button
               onClick={() => {
+                // Изменяем URL в браузере для удобства, если пользователь ввел имя вручную
+                window.history.pushState({}, '', `/${username}`);
                 setIsWidgetMode(true);
                 connectToServer(username);
               }}
