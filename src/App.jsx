@@ -207,13 +207,16 @@ export default function App() {
       `}} />
 
       <div className="relative">
-        <div className="bg-slate-900/80 backdrop-blur-md border border-white/10 rounded-3xl py-4 px-8 shadow-[0_0_30px_rgba(236,72,153,0.3)]">
-          <div className="text-xs font-bold text-pink-400 tracking-wider uppercase mb-1 flex items-center justify-center gap-2">
-            <Timer size={14} /> 
+        {/* Зафиксирована ширина w-[450px] и добавлено выравнивание */}
+        <div className="bg-slate-900/80 backdrop-blur-md border border-white/10 rounded-3xl py-6 px-8 shadow-[0_0_30px_rgba(236,72,153,0.3)] w-[450px] flex flex-col items-center">
+          
+          {/* Увеличен текст до text-2xl и иконка до size=28 */}
+          <div className="text-2xl font-black text-pink-400 tracking-wider uppercase mb-4 flex items-center justify-center gap-3">
+            <Timer size={28} /> 
             ДО КОНЦА СТРИМА
           </div>
           
-          <div className="relative">
+          <div className="relative w-full flex justify-center items-center">
             {/* Текст таймера */}
             <div className="text-7xl font-black text-white tabular-nums tracking-tight text-glow relative z-0">
               {formatTime(timeLeft)}
