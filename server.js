@@ -4,18 +4,32 @@ const { Server } = require('socket.io');
 const { WebcastPushConnection } = require('tiktok-live-connector');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs'); // Добавлено для проверки существования файлов
 
 const app = express();
 app.use(cors());
 
 // --- РАЗДАЧА FRONTEND (REACT ВИДЖЕТА) ---
-// Указываем серверу брать готовые файлы виджета из папки dist (которую создаст Vite при команде build)
+// Указываем серверу брать готовые файлы виджета из папки dist
 app.use(express.static(path.join(__dirname, 'dist')));
 
-// Перенаправляем ЛЮБЫЕ пути (например /brothernature) на виджет,
-// чтобы React смог сам прочитать никнейм из ссылки.
+// Перенаправляем ЛЮБЫЕ пути (например /brothernature) на виджет
 app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+    const indexPath = path.join(__dirname, 'dist', 'index.html');
+    
+    // Защита для Railway: проверяем, успел ли собраться React-виджет.
+    // Если файла еще нет, сервер не упадет с ошибкой, а отдаст временное сообщение (код 200).
+    if (fs.existsSync(indexPath)) {
+        res.sendFile(indexPath);
+    } else {
+        res.status(200).send(`
+            <div style="font-family: sans-serif; text-align: center; margin-top: 50px; color: white; background: #0f172a; height: 100vh; padding: 20px;">
+                <h2>⏳ Виджет собирается...</h2>
+                <p>Сервер Node.js успешно запущен, но файлы React-виджета еще создаются.</p>
+                <p>Пожалуйста, подождите пару минут и <b>обновите эту страницу</b>.</p>
+            </div>
+        `);
+    }
 });
 // ----------------------------------------
 
@@ -35,12 +49,10 @@ io.on('connection', (socket) => {
         if (!username) return;
         console.log(`Попытка подключения к TikTok: @${username}`);
 
-        // Если уже было подключение, закрываем его
         if (tiktokLiveConnection) {
             tiktokLiveConnection.disconnect();
         }
 
-        // Создаем новое подключение к стримеру
         tiktokLiveConnection = new WebcastPushConnection(username);
 
         try {
@@ -48,7 +60,6 @@ io.on('connection', (socket) => {
             console.log(`Успешное подключение к стриму @${username} (RoomID: ${state.roomId})`);
             socket.emit('connected', { username, roomId: state.roomId });
 
-            // Обработка получения подарков
             tiktokLiveConnection.on('gift', data => {
                 const isCombo = data.giftType === 1;
                 socket.emit('gift', {
@@ -64,7 +75,6 @@ io.on('connection', (socket) => {
                 });
             });
 
-            // Трансляция завершена
             tiktokLiveConnection.on('streamEnd', () => {
                 socket.emit('disconnected', 'Трансляция завершена');
                 console.log(`Стрим @${username} завершен.`);
@@ -84,8 +94,11 @@ io.on('connection', (socket) => {
     });
 });
 
-// Railway сам назначает порт через process.env.PORT
+// Railway назначает порт через процесс, используем его
 const PORT = process.env.PORT || 3001;
-server.listen(PORT, () => {
+
+// ВАЖНО: Добавлен '0.0.0.0'. 
+// Это говорит серверу принимать подключения извне, что обязательно для проверок Railway!
+server.listen(PORT, '0.0.0.0', () => {
     console.log(`✅ Сервер запущен на порту ${PORT}`);
 });
