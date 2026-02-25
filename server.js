@@ -3,14 +3,26 @@ const http = require('http');
 const { Server } = require('socket.io');
 const { WebcastPushConnection } = require('tiktok-live-connector');
 const cors = require('cors');
+const path = require('path');
 
 const app = express();
 app.use(cors());
 
+// --- РАЗДАЧА FRONTEND (REACT ВИДЖЕТА) ---
+// Указываем серверу брать готовые файлы виджета из папки dist (которую создаст Vite при команде build)
+app.use(express.static(path.join(__dirname, 'dist')));
+
+// Перенаправляем ЛЮБЫЕ пути (например /brothernature) на виджет,
+// чтобы React смог сам прочитать никнейм из ссылки.
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
+// ----------------------------------------
+
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "*", // Разрешаем подключение виджету из любого источника
+    origin: "*", 
     methods: ["GET", "POST"]
   }
 });
@@ -23,10 +35,12 @@ io.on('connection', (socket) => {
         if (!username) return;
         console.log(`Попытка подключения к TikTok: @${username}`);
 
+        // Если уже было подключение, закрываем его
         if (tiktokLiveConnection) {
             tiktokLiveConnection.disconnect();
         }
 
+        // Создаем новое подключение к стримеру
         tiktokLiveConnection = new WebcastPushConnection(username);
 
         try {
@@ -34,6 +48,7 @@ io.on('connection', (socket) => {
             console.log(`Успешное подключение к стриму @${username} (RoomID: ${state.roomId})`);
             socket.emit('connected', { username, roomId: state.roomId });
 
+            // Обработка получения подарков
             tiktokLiveConnection.on('gift', data => {
                 const isCombo = data.giftType === 1;
                 socket.emit('gift', {
@@ -49,6 +64,7 @@ io.on('connection', (socket) => {
                 });
             });
 
+            // Трансляция завершена
             tiktokLiveConnection.on('streamEnd', () => {
                 socket.emit('disconnected', 'Трансляция завершена');
                 console.log(`Стрим @${username} завершен.`);
@@ -68,7 +84,8 @@ io.on('connection', (socket) => {
     });
 });
 
+// Railway сам назначает порт через process.env.PORT
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
-    console.log(`✅ Сервер TikTok Subathon запущен на порту ${PORT}`);
+    console.log(`✅ Сервер запущен на порту ${PORT}`);
 });
