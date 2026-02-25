@@ -81,24 +81,23 @@ export default function App() {
 
     if (addedTime > 0) {
       setTimeLeft((prev) => prev + addedTime);
-      showTimeAddition(addedTime);
+      showTimeAddition(addedTime, data.senderName);
     }
   };
 
-  // Функция для создания всплывающей анимации добавленного времени
-  const showTimeAddition = (time) => {
+  // Функция для создания всплывающей анимации добавленного времени с именем
+  const showTimeAddition = (time, senderName = 'Аноним') => {
     const id = Date.now().toString() + Math.random().toString();
     
-    // Генерируем случайное смещение по оси X от -20px до +20px, 
-    // чтобы цифры не слипались при множестве одновременных подарков
-    const randomOffset = Math.random() * 40 - 20;
+    // Генерируем случайное смещение по оси X, чтобы сообщения не слипались
+    const randomOffset = Math.random() * 80 - 40;
 
-    setTimeAdditions((prev) => [...prev, { id, time, offset: randomOffset }]);
+    setTimeAdditions((prev) => [...prev, { id, time, offset: randomOffset, senderName }]);
 
-    // Удаляем элемент после завершения CSS анимации (1.5 сек)
+    // Удаляем элемент после завершения CSS анимации (теперь 3.5 сек)
     setTimeout(() => {
       setTimeAdditions((prev) => prev.filter((item) => item.id !== id));
-    }, 1500);
+    }, 3500);
   };
 
   const startDemoMode = () => {
@@ -109,9 +108,11 @@ export default function App() {
       { coins: 5, isCombo: false },
       { coins: 30, isCombo: false },
     ];
+    const fakeUsers = ['Ivan_Pro', 'Ksenia_Live', 'TikTokFan_99', 'MegaDonater'];
 
     demoIntervalRef.current = setInterval(() => {
       const randomGift = fakeGifts[Math.floor(Math.random() * fakeGifts.length)];
+      const randomUser = fakeUsers[Math.floor(Math.random() * fakeUsers.length)];
       
       handleIncomingGift({
         giftId: Math.random(),
@@ -119,9 +120,10 @@ export default function App() {
         repeatCount: 1,
         isCombo: false,
         isFinished: true,
-        comboId: `demo_${Date.now()}`
+        comboId: `demo_${Date.now()}`,
+        senderName: randomUser
       });
-    }, 1500);
+    }, 2000);
   };
 
   // Форматирование времени
@@ -191,15 +193,16 @@ export default function App() {
       {/* Стили для всплывающей анимации поверх таймера */}
       <style dangerouslySetInnerHTML={{__html: `
         @keyframes floatUpFade {
-          0% { transform: translateY(10px) scale(0.5); opacity: 0; }
-          20% { transform: translateY(0) scale(1.2); opacity: 1; text-shadow: 0 0 20px rgba(74,222,128,1); }
+          0% { transform: translateY(20px) scale(0.5); opacity: 0; }
+          10% { transform: translateY(0) scale(1.1); opacity: 1; text-shadow: 0 0 20px rgba(74,222,128,1); }
+          80% { transform: translateY(-50px) scale(1); opacity: 1; text-shadow: 0 0 10px rgba(74,222,128,0.8); }
           100% { transform: translateY(-70px) scale(1); opacity: 0; }
         }
         @keyframes pulseGlow {
           0%, 100% { text-shadow: 0 0 15px rgba(236, 72, 153, 0.5); }
           50% { text-shadow: 0 0 30px rgba(236, 72, 153, 1), 0 0 10px rgba(255, 255, 255, 0.8); }
         }
-        .animate-float-up-fade { animation: floatUpFade 1.5s ease-out forwards; }
+        .animate-float-up-fade { animation: floatUpFade 3.5s ease-out forwards; }
         .text-glow { animation: pulseGlow 2s infinite; }
       `}} />
 
@@ -207,7 +210,7 @@ export default function App() {
         <div className="bg-slate-900/80 backdrop-blur-md border border-white/10 rounded-3xl py-4 px-8 shadow-[0_0_30px_rgba(236,72,153,0.3)]">
           <div className="text-xs font-bold text-pink-400 tracking-wider uppercase mb-1 flex items-center justify-center gap-2">
             <Timer size={14} /> 
-            Subathon
+            ДО КОНЦА СТРИМА
           </div>
           
           <div className="relative">
@@ -216,17 +219,22 @@ export default function App() {
               {formatTime(timeLeft)}
             </div>
 
-            {/* Контейнер для всплывающих цифр */}
+            {/* Контейнер для всплывающих цифр с никнеймами */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
               {timeAdditions.map((item) => (
                 <div 
                   key={item.id} 
-                  className="absolute text-5xl font-black text-green-400 animate-float-up-fade"
+                  className="absolute flex flex-col items-center animate-float-up-fade"
                   style={{
                     marginLeft: `${item.offset}px`, // Легкий сдвиг, чтобы цифры не слипались
                   }}
                 >
-                  +{item.time}с
+                  <span className="text-sm font-bold text-white/90 bg-black/50 px-3 py-1 rounded-full backdrop-blur-sm mb-1 truncate max-w-[150px] border border-white/10 shadow-lg">
+                    {item.senderName}
+                  </span>
+                  <span className="text-5xl font-black text-green-400 drop-shadow-lg">
+                    +{item.time}с
+                  </span>
                 </div>
               ))}
             </div>
