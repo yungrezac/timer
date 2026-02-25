@@ -1,0 +1,15 @@
+/* Подключаем директивы Tailwind CSS */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Базовые настройки страницы */
+body {
+  margin: 0;
+  padding: 0;
+  /* Важно для OBS: делаем фон полностью прозрачным, 
+     чтобы виджет накладывался поверх игры или веб-камеры */
+  background-color: transparent !important; 
+  /* Убираем возможные ползунки прокрутки */
+  overflow: hidden; 
+}
